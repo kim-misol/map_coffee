@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <link rel="shortcut icon" href="./img/misol.png" type="image/x-icon">
+        <!-- <link rel="shortcut icon" href="./img/misol.jpg" type="image/x-icon"> -->
+        <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    
+        <link rel="stylesheet" href="css/custom.css"> <!-- Add customizing style -->
+        <link rel="stylesheet" href="css/style.css"> <!-- Resource style -->
+        <script src="js/modernizr.js"></script> <!-- Modernizr -->
+        <script src="dbHandle.js"></script>   
+        <title>인도 커피빈 맵</title>
+
+        <script>    
+            // 전역변수
+            var db = null;           // DB 객체
+            var flag;                // 입력/수정 페이지 식별
+            
+            $(document).ready(function() {
+                
+                // 폰갭 API 초기화
+                initPhoneGap();
+        
+                // DB, Table 열기         
+                openDB();  
+                createTable();  
+                // purge all search logs
+                // purch_all();
+                                    
+                // if click search button, insert search long             
+                $('#btn_search_location').click(function() {
+                    insert_search_logs(); 
+                });   
+                
+                // Trigger a Button Click on Enter
+                // Get the input field
+                var input = document.getElementById("searchQuery");
+
+                // Execute a function when the user releases a key on the keyboard
+                input.addEventListener("keyup", function(event) {
+                // Number 13 is the "Enter" key on the keyboard
+                if (event.keyCode === 13) {
+                    // Cancel the default action, if needed
+                    event.preventDefault();
+                    // Trigger the button element with a click
+                    document.getElementById("btn_search_location").click();
+                }
+                });
+            });   
+            
+            function initPhoneGap() {
+                    document.addEventListener('deviceready', onDeviceReady, true);
+            }   
+            function onDeviceReady() {
+                navigator.notification.alert('장치 준비됨', null, '폰갭 API');
+            } 
+        </script>
+    </head>
+
+    <body>
+        <div id ="b" class="d-flex justify-content-center h-100" style="visibility: hidden;">
+            <div class="search"> 
+                <input type="text" class="search-input" name="searchQuery" id="searchQuery" placeholder="ex) 서울시 강남구 or 서울시 강남구 대치동">
+                <button class="search-icon" type="submit" id="btn_search_location" onclick="getSearchQuery()"><i class="fa fa-search"></i></button>
+            </div>
+        </div>
+
+<!-- fav pharmacies modal -->
+        <nav class="cd-stretchy-nav add-custom-dialog" style="z-index: 9999;" id="collapsibleNavbar">
+            <div id="phar_info_modal_test"> </div>
+        </nav> 
+
+        <nav class="cd-stretchy-nav add-content" style="z-index: 850" id="collapsibleNavbar">
+            <a class="cd-nav-trigger" href="#0">
+                <span aria-hidden="true"></span>
+            </a>
+
+            <ul>
+                <li><a href="#0"></a></li>
+                <li><a class="nav-link" data-toggle="modal" data-target="#list_modal" onclick="list_fav_restaurant()" title="저장된 음식점 리스트 보기" style="margin-right:10px;"><i style="margin-right: 22px; margin-top: 20px; font-size: 24px;" class="fa fa-bookmark"><span>즐겨찾기</span></i></a></li>
+                <li><a href="https://m.map.kakao.com/actions/index"><i style="margin-right: 15px; margin-top: 20px; font-size: 22px;" class="fa fa-map"><span>길찾기</span></i></a></li>
+                <li><a href="#0"></a></li>
+            </ul>
+            <span aria-hidden="true" class="stretchy-nav-bg"></span>
+        </nav>  
+<!-- kakao map -->
+        <div id="map" style="width:100%;height:100vh; position: relative; z-index: 500;display: inline-block; margin-top:-100px;"></div>
+        <!-- KAKAO MAP API -->
+        <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=14c32e894bc092b7b77d64d68100c5fa&libraries=clusterer"></script>
+        <!-- COVID19 PUBLIC MASK API -->
+        <script>
+           
+            getSearchQuery()
+            function getSearchQuery(){ // @@@
+                
+                var query = ""
+                var url = ""    
+                query = document.getElementById("searchQuery").value
+                // convert 서울시 to 서울특별시
+                let query_str = ""
+                let query_arr = query.split(" ");
+                for (let i = 0; i < query_arr.length; i++) {
+                    if (i == 0) {
+                        if (query_arr[i] == '서울시') {
+                            query_str += '서울특별시'
+                        } else {
+                            query_str += query_arr[i];
+                        }
+                    } else {
+                        query_str += '%20' + query_arr[i];
+                    }
+                }
+                
+                let stores = [
+{
+  "name": "인디아게이트더카페",
+  "addr": "경기 고양시 일산동구 식사동 684-4",
+  "contact": "031-962-5388",
+  "ceo": "",
+  "email": "",
+  "description": "인도음식점겸 카페 운영 / 아메리카노, 라떼, 카라멜마끼야또 등 일반적인 카페에서 판매하는 음료 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.68221,
+  "lng": 126.812285,
+  "memo": ""
+},
+{
+  "name": "아시아푸드마트",
+  "addr": "강원 고성군 토성면 봉포4길 19",
+  "contact": "033-631-3190",
+  "ceo": "",
+  "email": "om@omfood.kr",
+  "description": "라씨/ 짜이만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 38.252759,
+  "lng": 128.561932,
+  "memo": ""
+},
+{
+  "name": "마하싯다커리",
+  "addr": "강원 춘천시 중앙로67번길 18 브라운가",
+  "contact": "033-254-6600",
+  "ceo": "",
+  "email": "",
+  "description": "주변 상권에 카페없음 커피판매x",
+  "handle_coffee": "X",
+  "is_opened": "",
+  "lat": 37.878311,
+  "lng": 127.727581,
+  "memo": ""
+},
+{
+  "name": "봄베그릴",
+  "addr": "경기 가평군 가평읍 북한강변로 1067",
+  "contact": "031-581-7155",
+  "ceo": "카지쟈베드이크발",
+  "email": "http://bombaynamiseom.itrocks.kr/",
+  "description": "가평에 위치해서 좋지만 엔제리너스와 붙어있음 분점보유(이태원)",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": null,
+  "lng": null,
+  "memo": ""
+},
+{
+  "name": "아시아시아",
+  "addr": "경기 고양시 일산동구 정발산로 24 웨스턴돔1",
+  "contact": "031-901-0086",
+  "ceo": "",
+  "email": "",
+  "description": "일산 웨스턴돔에 위치 / 세트메뉴 판매및 주류도 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.655306,
+  "lng": 126.772515,
+  "memo": ""
+},
+{
+  "name": "샤프론",
+  "addr": "경기 고양시 일산서구 호수로 817 레이킨스몰 2층",
+  "contact": "031-915-7429",
+  "ceo": "",
+  "email": "",
+  "description": "일산 홈플러스에 위치 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.668062,
+  "lng": 126.751012,
+  "memo": ""
+},
+{
+  "name": "카삼",
+  "addr": "경기 광주시 중앙로 95-5",
+  "contact": "031-769-9774",
+  "ceo": "",
+  "email": "",
+  "description": "현지인이 운영 / 라씨만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.40841,
+  "lng": 127.258337,
+  "memo": ""
+},
+{
+  "name": "델리커리(김포현대프리미엄아울렛점)",
+  "addr": "경기 김포시 고촌읍 아라육로152번길 100 현대프리미엄아울렛김포점 이스트관3층 H키친 델리커리",
+  "contact": "031-8048-2360",
+  "ceo": "",
+  "email": "http://www.delhicurry.co.kr/default/",
+  "description": "체인점(25)/ 퓨전커리 음식 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.599319,
+  "lng": 126.785848,
+  "memo": ""
+},
+{
+  "name": "할라인디안레스토랑",
+  "addr": "경기 김포시 통진읍 조강로 43 2층",
+  "contact": "010-5773-4848",
+  "ceo": "",
+  "email": "",
+  "description": "아메리카노, 맥심커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.689997,
+  "lng": 126.600495,
+  "memo": ""
+},
+{
+  "name": "거네스",
+  "addr": "경기 남양주시 화도읍 먹갓로 6 묵현리 390 3층",
+  "contact": "031-592-2767",
+  "ceo": "",
+  "email": "",
+  "description": "일반적인 저가 원두판매로 보임",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.654815,
+  "lng": 127.275669,
+  "memo": ""
+},
+{
+  "name": "킴스인터내셔날컴퍼니&킴스와우인디언인도레스토랑",
+  "addr": "경기 동두천시 강변로 506-18 생연동 542-22",
+  "contact": "031-858-4006",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.913679,
+  "lng": 127.05592,
+  "memo": ""
+},
+{
+  "name": "스타레스토랑",
+  "addr": "경기 동두천시 평화로 2569-2 보산동 437-10",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.917317,
+  "lng": 127.056764,
+  "memo": ""
+},
+{
+  "name": "나누다키친카레",
+  "addr": "서울 강남구 강남대로152길 35 신사동 515-9",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "신사역에위치/ 장진우 쉐프 운영 / 뷔페스타일",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.518062,
+  "lng": 127.022185,
+  "memo": ""
+},
+{
+  "name": "델리커리(강남역점)",
+  "addr": "서울 강남구 강남대로94길 10 역삼동 819 케이스퀘어 3층",
+  "contact": "02-567-8321",
+  "ceo": "",
+  "email": "http://www.delhicurry.co.kr/default/",
+  "description": "체인점(25)/ 퓨전커리 음식 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.49919,
+  "lng": 127.028174,
+  "memo": ""
+},
+{
+  "name": "아이피플스",
+  "addr": "서울 강남구 논현로149길 67-5 논현동 12-2",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.498001,
+  "lng": 127.037923,
+  "memo": ""
+},
+{
+  "name": "뉴델리",
+  "addr": "서울 강남구 논현로176길 28 신사동 613-15",
+  "contact": "02-541-9300",
+  "ceo": "",
+  "email": "",
+  "description": "압구정위치/ 고급레스토랑/ 아메리카노 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.527576,
+  "lng": 127.030765,
+  "memo": ""
+},
+{
+  "name": "커리핑거",
+  "addr": "서울 강남구 도산대로 442 청담동 4-1",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.523291,
+  "lng": 127.044422,
+  "memo": ""
+},
+{
+  "name": "인터컨티넨탈 서울 코엑스 아시안 라이브",
+  "addr": "서울 강남구 봉은사로 524 삼성동 159 인터컨티넨탈 서울 코엑스 2층",
+  "contact": "02-3430-8620",
+  "ceo": "",
+  "email": "https://seoul.intercontinental.com/iccoex/restaurant/AsianLive",
+  "description": "호텔레스토랑",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.510221,
+  "lng": 127.058566,
+  "memo": ""
+},
+{
+  "name": "탄두리카",
+  "addr": "서울 강남구 봉은사로74길 19 삼성동 118-7 1층",
+  "contact": "02-552-3464",
+  "ceo": "",
+  "email": "",
+  "description": "라씨, 짜이, 맥주판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.511333,
+  "lng": 127.052154,
+  "memo": ""
+},
+{
+  "name": "루나아시아",
+  "addr": "서울 강남구 삼성로100길 15 명당빌딩",
+  "contact": "02-562-7992",
+  "ceo": "",
+  "email": "https://lunaasia.modoo.at/",
+  "description": "네팔인이 운영하는 식당(삼성동에 위치)  직장인 점심장사를 주로함 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.509894,
+  "lng": 127.056581,
+  "memo": ""
+},
+{
+  "name": "스와가트",
+  "addr": "서울 강남구 선릉로152길 5 B1",
+  "contact": "02-549-4668",
+  "ceo": "",
+  "email": "http://www.swagat.co.kr/default/",
+  "description": "분점 보유 / 아메리카노 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.524223,
+  "lng": 127.039983,
+  "memo": ""
+},
+{
+  "name": "나마스테(청담점)",
+  "addr": "서울 강남구 선릉로152길 5 청담동 85-6 B1",
+  "contact": "02-549-4667",
+  "ceo": "",
+  "email": "",
+  "description": "압구정위치/ 고급레스토랑/ 라씨만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.524206,
+  "lng": 127.039987,
+  "memo": ""
+},
+{
+  "name": "인딕슬로우",
+  "addr": "서울 강남구 압구정로4길 13",
+  "contact": "02-511-0139",
+  "ceo": "",
+  "email": "https://www.instagram.com/indic.slow/",
+  "description": "분점보유 /  아메리카노판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.521879,
+  "lng": 127.020327,
+  "memo": ""
+},
+{
+  "name": "아그라(N타워점)",
+  "addr": "서울 강남구 테헤란로 129 역삼동 648-9 지하1층",
+  "contact": "02-6250-0969",
+  "ceo": "",
+  "email": "http://www.agra.co.kr/",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.49979,
+  "lng": 127.032408,
+  "memo": ""
+},
+{
+  "name": "아그라(GFC점)",
+  "addr": "서울 강남구 테헤란로 152  역삼동 737 지하1층",
+  "contact": "02-565-7795",
+  "ceo": "",
+  "email": "http://www.agra.co.kr/",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "S",
+  "is_opened": "",
+  "lat": 37.499893,
+  "lng": 127.036323,
+  "memo": ""
+},
+{
+  "name": "머노",
+  "addr": "서울 강남구 테헤란로1길 42 역삼동 619-18",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "강남역에 위치 / 라씨판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.501113,
+  "lng": 127.027121,
+  "memo": ""
+},
+{
+  "name": "올드델리",
+  "addr": "서울 강북구 도봉로 355",
+  "contact": "02-907-6688",
+  "ceo": "김구연",
+  "email": "http://www.olddelhi.co.kr/index_1.asp",
+  "description": "아메리카노 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.639321,
+  "lng": 127.026681,
+  "memo": ""
+},
+{
+  "name": "해피쿡",
+  "addr": "서울 강북구 수유로 42",
+  "contact": "02-902-4881",
+  "ceo": "",
+  "email": "",
+  "description": "라씨와 티만판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.634853,
+  "lng": 127.019539,
+  "memo": ""
+},
+{
+  "name": "델리커리(NC강서점)",
+  "addr": "서울 강서구 강서로56길 17 등촌동 689 9층",
+  "contact": "",
+  "ceo": "",
+  "email": "http://www.delhicurry.co.kr/default/",
+  "description": "체인점(25)/ 퓨전커리 음식 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.559961,
+  "lng": 126.840492,
+  "memo": ""
+},
+{
+  "name": "델리팰리스",
+  "addr": "서울 강서구 공항대로 269-15",
+  "contact": "마곡동 797-14 2층 205호",
+  "ceo": "",
+  "email": "",
+  "description": "아메리카노판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.559435,
+  "lng": 126.836979,
+  "memo": ""
+},
+{
+  "name": "가네샤",
+  "addr": "서울 강서구 마곡동로3길 26 마곡동 774-5 3층 305호",
+  "contact": "02-3663-1532",
+  "ceo": "",
+  "email": "",
+  "description": "라씨, 맥주판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.560403,
+  "lng": 126.83022,
+  "memo": ""
+},
+{
+  "name": "옷살",
+  "addr": "서울 관악구 관악로 164 대우디오슈페리움1단지",
+  "contact": "02-882-6527",
+  "ceo": "이원섭",
+  "email": "http://otsal.co.kr/",
+  "description": "체인점(2) / 인도홍차, 더치커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.479572,
+  "lng": 126.952886,
+  "memo": ""
+},
+{
+  "name": "가네샤",
+  "addr": "서울 관악구 대학길 46 신림동 1538-14",
+  "contact": "02-6123-9799",
+  "ceo": "",
+  "email": "",
+  "description": "라씨, 맥주판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.468653,
+  "lng": 126.93753,
+  "memo": ""
+},
+{
+  "name": "탄두리카",
+  "addr": "서울 관악구 호암로24길 73",
+  "contact": "02-877-3464",
+  "ceo": "",
+  "email": "",
+  "description": "라씨, 밀크티 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.469335,
+  "lng": 126.937249,
+  "memo": ""
+},
+{
+  "name": "와나카커리",
+  "addr": "서울 광진구 능동로 137-1 2층",
+  "contact": "02-6402-0822",
+  "ceo": "",
+  "email": "https://www.instagram.com/wanakacurry/",
+  "description": "커리만 판매 / 일본식 카레",
+  "handle_coffee": "x",
+  "is_opened": "X / 커피에 관심없음 X",
+  "lat": 37.543172,
+  "lng": 127.071897,
+  "memo": ""
+},
+{
+  "name": "봄베이인디아",
+  "addr": "서울 광진구 동일로20길 89",
+  "contact": "02-463-0045",
+  "ceo": "",
+  "email": "",
+  "description": "건대입구역에 위치 주류판매 부적합",
+  "handle_coffee": "x",
+  "is_opened": "X/ 커피에 관심없음",
+  "lat": 37.540039,
+  "lng": 127.068444,
+  "memo": ""
+},
+{
+  "name": "로얄인디안레스토랑",
+  "addr": "서울 광진구 동일로22길 42",
+  "contact": "02-466-8809",
+  "ceo": "",
+  "email": "https://royalindian.modoo.at/",
+  "description": "건대위치/ 세트위주의 저가형 음식점 / 라씨와 주류판매",
+  "handle_coffee": "x",
+  "is_opened": "X / 커피에 관심없음",
+  "lat": 37.541857,
+  "lng": 127.066424,
+  "memo": ""
+},
+{
+  "name": "베나레스(구로디지털단지점)",
+  "addr": "서울 구로구 디지털로32길 79 구로동 1124-72 2층",
+  "contact": "02-863-9982",
+  "ceo": "",
+  "email": "",
+  "description": "라씨,주류만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.483453,
+  "lng": 126.89971,
+  "memo": ""
+},
+{
+  "name": "델리게이트",
+  "addr": "서울 금천구 가산로 147-12",
+  "contact": "02-855-9971",
+  "ceo": "",
+  "email": "",
+  "description": "라씨, 짜이 판매 / 주류 중심으로 판매 부적합해 보임",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.478283,
+  "lng": 126.890209,
+  "memo": ""
+},
+{
+  "name": "와룽마칸보루부둘",
+  "addr": "서울 금천구 벚꽃로 278 가산동 60-19",
+  "contact": "02-863-3072",
+  "ceo": "",
+  "email": "",
+  "description": "인도네시아음식판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.479417,
+  "lng": 126.884613,
+  "memo": ""
+},
+{
+  "name": "올드델리(노원점)",
+  "addr": "서울 노원구 노해로85길 14",
+  "contact": "02-935-6689",
+  "ceo": "김구연",
+  "email": "http://www.olddelhi.co.kr/index_1.asp",
+  "description": "커피판매(원두커피로보임)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.65607,
+  "lng": 127.065275,
+  "memo": ""
+},
+{
+  "name": "뉴델리",
+  "addr": "서울 동대문구 경희대로6길 5",
+  "contact": "02-957-7955",
+  "ceo": "",
+  "email": "",
+  "description": "경희대 위치/ 커피판매(원두커피로보임)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.593338,
+  "lng": 127.053121,
+  "memo": ""
+},
+{
+  "name": "가우커리",
+  "addr": "서울 동대문구 답십리로72길 96 1층",
+  "contact": "02-2216-2889",
+  "ceo": "",
+  "email": "",
+  "description": "",
+  "handle_coffee": "",
+  "is_opened": "",
+  "lat": 37.568074,
+  "lng": 127.072405,
+  "memo": ""
+},
+{
+  "name": "비나레스토랑",
+  "addr": "서울 동대문구 안암로24길 4",
+  "contact": "02-926-5860",
+  "ceo": "",
+  "email": "",
+  "description": "고대앞 위치/ 생활의 달인 출연 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.588443,
+  "lng": 127.035292,
+  "memo": ""
+},
+{
+  "name": "커리146경희점",
+  "addr": "서울 동대문구 이문로 46 1층",
+  "contact": "010-2098-3644",
+  "ceo": "",
+  "email": "https://www.instagram.com/otsal_curry146/",
+  "description": "영국식 인도커리 전문점 / 아메리카노판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.590983,
+  "lng": 127.056691,
+  "memo": ""
+},
+{
+  "name": "베나레스",
+  "addr": "서울 동대문구 회기로19길 23 유경빌딩",
+  "contact": "02-968-9982",
+  "ceo": "",
+  "email": "",
+  "description": "라씨,주류만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.592674,
+  "lng": 127.052933,
+  "memo": ""
+},
+{
+  "name": "마살라키친",
+  "addr": "서울 동대문구 휘경로2길 4 이층",
+  "contact": "02-957-7858",
+  "ceo": "",
+  "email": "",
+  "description": "외대역 근처 위치 / 라씨,짜이 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.595811,
+  "lng": 127.060925,
+  "memo": ""
+},
+{
+  "name": "커리야",
+  "addr": "서울 동작구 흑석로 97-4 1층, B1층",
+  "contact": "02-812-9991",
+  "ceo": "",
+  "email": "",
+  "description": "중앙대 근처 위치/ 아메리카노 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.507725,
+  "lng": 126.960268,
+  "memo": ""
+},
+{
+  "name": "다페레스토랑",
+  "addr": "서울 마포구 독막로15길 3-12 2층",
+  "contact": "02-323-0313",
+  "ceo": "",
+  "email": "https://dafhe.modoo.at/",
+  "description": "인도현지 분위기 가득 / 와인,라씨를 세트랑 묶어 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.548431,
+  "lng": 126.921528,
+  "memo": ""
+},
+{
+  "name": "델리인디아",
+  "addr": "서울 마포구 독막로9길 8",
+  "contact": "02-2631-2109",
+  "ceo": "",
+  "email": "https://www.instagram.com/delhi_india_seokyo/",
+  "description": "생생정보통 출연 / 라씨,밀크티,주류판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.548638,
+  "lng": 126.919684,
+  "memo": ""
+},
+{
+  "name": "옴레스토랑(마포공덕점)",
+  "addr": "서울 마포구 마포대로 73 SK허브그린 201호",
+  "contact": "02-725-4848",
+  "ceo": "",
+  "email": "om@omfood.kr",
+  "description": "체인점(3) / 히말라야 커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.542288,
+  "lng": 126.948951,
+  "memo": ""
+},
+{
+  "name": "수엠부",
+  "addr": "서울 마포구 백범로 30 2층",
+  "contact": "02-744-6484",
+  "ceo": "",
+  "email": "",
+  "description": "체인점(6) ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.551852,
+  "lng": 126.93721,
+  "memo": ""
+},
+{
+  "name": "인디안그릴",
+  "addr": "서울 마포구 성미산로 157-6 1층",
+  "contact": "",
+  "ceo": "",
+  "email": "https://www.facebook.com/indiangrillyeonnam",
+  "description": "라씨,맥주만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.564871,
+  "lng": 126.923648,
+  "memo": ""
+},
+{
+  "name": "죠티레스토랑",
+  "addr": "서울 마포구 신촌로20길 6 노고산동 31-4 3층",
+  "contact": "02-703-3535",
+  "ceo": "",
+  "email": "",
+  "description": "라씨,주류만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.554933,
+  "lng": 126.937901,
+  "memo": ""
+},
+{
+  "name": "아마(홍대점)",
+  "addr": "서울 마포구 양화로16길 10 서교동 371-4 2층",
+  "contact": "02-332-8302",
+  "ceo": "",
+  "email": "http://amahongdae.cityfood.co.kr/",
+  "description": "라씨,마살라티,주류판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.55351,
+  "lng": 126.920233,
+  "memo": ""
+},
+{
+  "name": "시타라",
+  "addr": "서울 마포구 양화로6길 32 합정동 413-18",
+  "contact": "02-325-5623",
+  "ceo": "",
+  "email": "",
+  "description": "합정역 근처에위치 / 주류판매 / 부적합",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.54886,
+  "lng": 126.915919,
+  "memo": ""
+},
+{
+  "name": "럭키인디아",
+  "addr": "서울 마포구 양화로7길 6-5",
+  "contact": "02-336-7782",
+  "ceo": "",
+  "email": "",
+  "description": "펍분위기의 레스토랑",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.551532,
+  "lng": 126.915209,
+  "memo": ""
+},
+{
+  "name": "탄둘하우스",
+  "addr": "서울 마포구 어울마당로 43",
+  "contact": "02-336-8688",
+  "ceo": "",
+  "email": "",
+  "description": "홍대위치 / 라씨, 칵테일 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.549036,
+  "lng": 126.920429,
+  "memo": ""
+},
+{
+  "name": "헬로인디아",
+  "addr": "서울 마포구 연남로3길 9 1층 ",
+  "contact": "02-336-8425",
+  "ceo": "",
+  "email": "https://blog.naver.com/helloindia81",
+  "description": "연남동 위치 / 라씨와 주류 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.561234,
+  "lng": 126.921957,
+  "memo": ""
+},
+{
+  "name": "웃사브",
+  "addr": "서울 마포구 와우산로11길 10 1,2층",
+  "contact": "02-334-9189",
+  "ceo": "",
+  "email": "https://utsav.modoo.at/",
+  "description": "커리, 팟타이 등 여러 아시아 음식 무제한 음식점 / 브런치하기 좋음 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.548961,
+  "lng": 126.92247,
+  "memo": ""
+},
+{
+  "name": "예티",
+  "addr": "서울 마포구 와우산로18길 10",
+  "contact": "02-325-0745",
+  "ceo": "",
+  "email": "https://cafe.naver.com/yetifood",
+  "description": "굿모닝대한민국 출연 / 홍대위치 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.550583,
+  "lng": 126.923569,
+  "memo": ""
+},
+{
+  "name": "soul of india",
+  "addr": "서울 마포구 와우산로21길 20-6 서교동 358-90 하나빌딩 3층",
+  "contact": "070-4063-4603",
+  "ceo": "",
+  "email": "https://www.instagram.com/soulofindia_kr/",
+  "description": "라씨,짜이,탄산판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.552578,
+  "lng": 126.922965,
+  "memo": ""
+},
+{
+  "name": "더 키친 아시아",
+  "addr": "서울 마포구 와우산로23길 35-6",
+  "contact": "070-7758-3232",
+  "ceo": "",
+  "email": "",
+  "description": "홍대 중심지에서 영업, 젊은 분위기 주류판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.554542,
+  "lng": 126.923293,
+  "memo": ""
+},
+{
+  "name": "샨띠(홍대점)",
+  "addr": "서울 마포구 와우산로23길 9 서교동 344-6 칼리오페 2층",
+  "contact": "02-325-1779",
+  "ceo": "",
+  "email": "",
+  "description": "라씨,짜이,탄산,주류 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.553411,
+  "lng": 126.924344,
+  "memo": ""
+},
+{
+  "name": "산띠(서교점)",
+  "addr": "서울 마포구 와우산로27길 70",
+  "contact": "02-6052-3989",
+  "ceo": "",
+  "email": "https://www.instagram.com/shanti_indian_restaurant/",
+  "description": "아메리카노 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.555467,
+  "lng": 126.924997,
+  "memo": ""
+},
+{
+  "name": "이태원겐지스",
+  "addr": "서울 마포구 와우산로29길 59 서교동 332-4",
+  "contact": "02-325-1206",
+  "ceo": "",
+  "email": "",
+  "description": "홍대위치 / 라씨판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.555925,
+  "lng": 126.926777,
+  "memo": ""
+},
+{
+  "name": "카주라호",
+  "addr": "서울 마포구 와우산로29길 59 서교동 332-4",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "?",
+  "is_opened": "",
+  "lat": 37.555905,
+  "lng": 126.92678,
+  "memo": ""
+},
+{
+  "name": "아그라(합정점)",
+  "addr": "서울 마포구 월드컵로3길 14 합정동 473 2층 210호",
+  "contact": "02-336-6320",
+  "ceo": "",
+  "email": "http://www.agra.co.kr/",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.550154,
+  "lng": 126.911943,
+  "memo": ""
+},
+{
+  "name": "아마",
+  "addr": "서울 마포구 월드컵북로 402 상암동 1601",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "?",
+  "is_opened": "",
+  "lat": 37.579762,
+  "lng": 126.888762,
+  "memo": ""
+},
+{
+  "name": "포탈라",
+  "addr": "서울 마포구 월드컵북로4길 13 동교동 203-18",
+  "contact": "02-928-8847",
+  "ceo": "",
+  "email": "https://potala.modoo.at/",
+  "description": "커피판매(원두커피로보임)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.557068,
+  "lng": 126.920526,
+  "memo": ""
+},
+{
+  "name": "칸인도음식점",
+  "addr": "서울 마포구 잔다리로6길 19",
+  "contact": "02-322-2826",
+  "ceo": "",
+  "email": "https://www.facebook.com/Khan-Indian-Restaurant-칸-인도-음식점-155808778439187/",
+  "description": "일반적인 인도레스토랑",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.552262,
+  "lng": 126.920197,
+  "memo": ""
+},
+{
+  "name": "커리야",
+  "addr": "서울 서대문구 거북골로 55 2층",
+  "contact": "02-305-9990",
+  "ceo": "",
+  "email": "",
+  "description": "명지대위치/ 내부적으로 카페운영, 다양한 종류의 커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.578154,
+  "lng": 126.922189,
+  "memo": ""
+},
+{
+  "name": "이지인디아(신촌점)",
+  "addr": "서울 서대문구 연세로 20",
+  "contact": "02-393-7771",
+  "ceo": "",
+  "email": "https://www.instagram.com/ezindia/",
+  "description": "대학가 근처에 저가형 커리 음식점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.557465,
+  "lng": 126.937079,
+  "memo": ""
+},
+{
+  "name": "머노까머나(신촌점)",
+  "addr": "서울 서대문구 연세로11길 13",
+  "contact": "02-338-4343",
+  "ceo": "시토울라어르준",
+  "email": "http://www.mankamana.com/",
+  "description": "체인점(4) / 라씨, 차, 와인 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.558774,
+  "lng": 126.936018,
+  "memo": ""
+},
+{
+  "name": "예티2",
+  "addr": "서울 서대문구 연세로12길 23",
+  "contact": "02-312-1179",
+  "ceo": "",
+  "email": "https://cafe.naver.com/yetifood",
+  "description": "라씨,주류만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.559061,
+  "lng": 126.938364,
+  "memo": ""
+},
+{
+  "name": "아마",
+  "addr": "서울 서대문구 연세로7길 24",
+  "contact": "02-332-9302",
+  "ceo": "김민우",
+  "email": "http://www.ammafood.co.kr/",
+  "description": "분점보유 / 인디안머살라라해서 특이한 커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.557729,
+  "lng": 126.935434,
+  "memo": ""
+},
+{
+  "name": "베나레스(이대점)",
+  "addr": "서울 서대문구 이화여대7길 15",
+  "contact": "02-364-9983",
+  "ceo": "",
+  "email": "",
+  "description": "라씨,차이,주류판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.558915,
+  "lng": 126.945462,
+  "memo": ""
+},
+{
+  "name": "커리야",
+  "addr": "서울 서대문구 이화여대길 52-35 2f",
+  "contact": "02-364-9991",
+  "ceo": "",
+  "email": "",
+  "description": "저렴한 가격 / 아메리카노 판매(2,500)",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.559431,
+  "lng": 126.944951,
+  "memo": ""
+},
+{
+  "name": "아건",
+  "addr": "서울 서대문구 이화여대길 63",
+  "contact": "02-364-8771",
+  "ceo": "카르키 거네스",
+  "email": "ganeshk@naver.com",
+  "description": "신촌 이대거리에 위치 / 원두커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.559172,
+  "lng": 126.94505,
+  "memo": ""
+},
+{
+  "name": "라소이",
+  "addr": "서울 서대문구 증가로 13-9 1층",
+  "contact": "02-332-2352",
+  "ceo": "",
+  "email": "",
+  "description": "연남동 위치/ 라씨, 와인 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.569106,
+  "lng": 126.931106,
+  "memo": ""
+},
+{
+  "name": "깔리",
+  "addr": "서울 서초구 방배천로 21",
+  "contact": "02-581-2855",
+  "ceo": "",
+  "email": "",
+  "description": "라씨,티,주류 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.478429,
+  "lng": 126.982262,
+  "memo": ""
+},
+{
+  "name": "카리(파미에스테이션점)",
+  "addr": "서울 서초구 사평대로 205 파미에스테이션 1층 FP122호",
+  "contact": "02-533-3386",
+  "ceo": "",
+  "email": "http://www.karigroup.co.kr/",
+  "description": "라씨,탄산 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.504015,
+  "lng": 127.004619,
+  "memo": ""
+},
+{
+  "name": "바바인디아",
+  "addr": "서울 서초구 서초2동 1328-11 대우도씨에빛2차 2층 201호",
+  "contact": "02-521-4588",
+  "ceo": "김현우",
+  "email": "babaindia@naver.com",
+  "description": "강남역에 위치 / 원두커피로 보이는 커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.494841,
+  "lng": 127.028603,
+  "memo": ""
+},
+{
+  "name": "오샬커리146",
+  "addr": "서울 서초구 서초대로 350 지하층 12호 ",
+  "contact": "070-4134-4573",
+  "ceo": "",
+  "email": "",
+  "description": "아메리카노판매(1,500)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.495161,
+  "lng": 127.019804,
+  "memo": ""
+},
+{
+  "name": "강가(강남점)",
+  "addr": "서울 서초구 서초대로74길 11 삼성전자 서초사옥 지하1층",
+  "contact": "02-2055-3610",
+  "ceo": "이덕형,임재선",
+  "email": "http://www.ganga.co.kr/",
+  "description": "체인점(8) / 쇼핑몰에 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.496605,
+  "lng": 127.0269,
+  "memo": ""
+},
+{
+  "name": "타지(서초점)",
+  "addr": "서울 서초구 서초중앙로2길 35 1층,B1층",
+  "contact": "02-586-0900",
+  "ceo": "",
+  "email": "http://taj.co.kr/",
+  "description": "수요미식회 출연 / 분점 보유 / 커피판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.484036,
+  "lng": 127.019179,
+  "memo": ""
+},
+{
+  "name": "겐지스(한양대점)",
+  "addr": "서울 성동구 사근동길 6 한양제일빌딩 3층",
+  "contact": "02-2293-9998",
+  "ceo": "",
+  "email": "",
+  "description": "체인점(5) / 라씨 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.560073,
+  "lng": 127.04188,
+  "memo": ""
+},
+{
+  "name": "나마스테",
+  "addr": "서울 성동구 왕십리로 241 서울숲 더샾",
+  "contact": "02-6454-6233",
+  "ceo": "",
+  "email": "",
+  "description": "왕십리엔터식스에 위치 / 아이스아메리카노 판매(원두커피로 보임)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.557077,
+  "lng": 127.040112,
+  "memo": ""
+},
+{
+  "name": "에베레스트레스토(고려대)",
+  "addr": "서울 성북구 고려대로 102 3층",
+  "contact": "02-929-8771",
+  "ceo": "",
+  "email": "",
+  "description": "수요미식회 출연 / 분점 보유 / 커피판매(2천원/원두커피로 추측)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.586123,
+  "lng": 127.030509,
+  "memo": ""
+},
+{
+  "name": "와티카인도음식점",
+  "addr": "서울 성북구 고려대로24길 16 3층",
+  "contact": "02-928-7861",
+  "ceo": "",
+  "email": "",
+  "description": "커리뷔페",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.58503,
+  "lng": 127.029576,
+  "memo": ""
+},
+{
+  "name": "베나레스(안암 본점)",
+  "addr": "서울 성북구 고려대로24길 27 2층 베나레스",
+  "contact": "02-921-9982",
+  "ceo": "이한국",
+  "email": "",
+  "description": "대학가 근처에 자리잡음 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.584912,
+  "lng": 127.02951,
+  "memo": ""
+},
+{
+  "name": "고고인디안쿠진2",
+  "addr": "서울 성북구 고려대로24길 3-3",
+  "contact": "02-923-0786",
+  "ceo": "",
+  "email": "",
+  "description": "고려대 위치/ 저가로 학생을 타겟층으로 판매 / 라씨, 탄산음료 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.586078,
+  "lng": 127.02963,
+  "memo": ""
+},
+{
+  "name": "비나레스토랑2호점",
+  "addr": "서울 성북구 고려대로24길 3-42",
+  "contact": "02-928-5860",
+  "ceo": "",
+  "email": "",
+  "description": "라씨, 인도차, 짜이, 마살라티 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.58592,
+  "lng": 127.029669,
+  "memo": ""
+},
+{
+  "name": "오샬",
+  "addr": "서울 성북구 고려대로24길 6 문원빌딩",
+  "contact": "010-5320-6885",
+  "ceo": "",
+  "email": "",
+  "description": "인도요리 도시락 배송",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.585934,
+  "lng": 127.029193,
+  "memo": ""
+},
+{
+  "name": "카레",
+  "addr": "서울 성북구 동소문로23길 62-1",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "한성대앞 위치 / 사과쥬스, 진저에일 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.596011,
+  "lng": 127.016192,
+  "memo": ""
+},
+{
+  "name": "인도이웃",
+  "addr": "서울 성북구 보문로34가길 2",
+  "contact": "02-742-9757",
+  "ceo": "",
+  "email": "",
+  "description": "성신여대 위치/ 인도와 일본식 카페 퓨전 음식점 / 더치커피, 에이드 등 젊은 층이 좋아하는 음료 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.591529,
+  "lng": 127.020062,
+  "memo": ""
+},
+{
+  "name": "고고인디안쿠진",
+  "addr": "서울 성북구 안암로 81-4 지하1층",
+  "contact": "02-922-0786",
+  "ceo": "",
+  "email": "",
+  "description": "체인점(1) / 커피판매하지 않음 안암역 3번출구에 위치",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.583638,
+  "lng": 127.029993,
+  "memo": ""
+},
+{
+  "name": "스파이스랩",
+  "addr": "서울 송파구 가락로 148",
+  "contact": "010-8725-1437",
+  "ceo": "",
+  "email": "",
+  "description": "인도가정식 판매 디저트로 요거트 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.502547,
+  "lng": 127.112264,
+  "memo": ""
+},
+{
+  "name": "타밀",
+  "addr": "서울 송파구 법원로11길 25 H비지니스파크 B동 118호",
+  "contact": "02-6285-0011",
+  "ceo": "",
+  "email": "https://www.instagram.com/tamil_720/",
+  "description": "영국식 인도커리 전문점 / ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.485121,
+  "lng": 127.116635,
+  "memo": ""
+},
+{
+  "name": "아그라 (잠실에비뉴엘점)",
+  "addr": "서울 송파구 올림픽로 300 롯데백화점에비뉴엘월드타워점 6층",
+  "contact": "02-3213-2633",
+  "ceo": "",
+  "email": "http://www.agra.co.kr/",
+  "description": "체인점(20) / 라씨판매 / 인도커리 체인점중 가장유명, 가장 대중적인 음식점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.512232,
+  "lng": 127.10189,
+  "memo": ""
+},
+{
+  "name": "강가",
+  "addr": "서울 송파구 올림픽로 300 롯데월드몰 6F",
+  "contact": "02-3213-4635",
+  "ceo": "이덕형,임재선",
+  "email": "gangga1004@naver.com",
+  "description": "체인점(8) / 많은곳이 쇼핑몰에 배치",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.513016,
+  "lng": 127.102732,
+  "memo": ""
+},
+{
+  "name": "키친오브인디아",
+  "addr": "서울 송파구 올림픽로 336 지하1층",
+  "contact": "070-4858-7188",
+  "ceo": "쿤드라수라바흐",
+  "email": "http://kitchenofindea.fordining.kr/",
+  "description": "인도출신 사장운영 / 아메리카노, 카푸치노 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.515365,
+  "lng": 127.107431,
+  "memo": ""
+},
+{
+  "name": "럭치미",
+  "addr": "서울 영등포구 경인로 837",
+  "contact": "02-2677-3079",
+  "ceo": "",
+  "email": "",
+  "description": "생과일주스 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.516284,
+  "lng": 126.905678,
+  "memo": ""
+},
+{
+  "name": "에베레스트레스토랑",
+  "addr": "서울 영등포구 경인로 838-1 영등포동 423-103",
+  "contact": "02-3667-8848",
+  "ceo": "",
+  "email": "",
+  "description": "라씨,네팔녹차 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.515956,
+  "lng": 126.906084,
+  "memo": ""
+},
+{
+  "name": "마더인디아",
+  "addr": "서울 영등포구 국제금융로 86 롯데캐슬 아이비",
+  "contact": "02-761-8280",
+  "ceo": "",
+  "email": "http://motherindia.cityfood.co.kr/",
+  "description": "여의도에 위치 / 라씨, 주류 판매 / 저녁장사 위주로 보임 / 부적합",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.519998,
+  "lng": 126.931982,
+  "memo": ""
+},
+{
+  "name": "아그라(여의도점)",
+  "addr": "서울 영등포구 국제금융로2길 24 여의도동 23-10 BNK금융타워 2층",
+  "contact": "02-761-8079",
+  "ceo": "",
+  "email": "",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.524305,
+  "lng": 126.924807,
+  "memo": ""
+},
+{
+  "name": "두르가 (여의도점)",
+  "addr": "서울 영등포구 국제금융로2길 37 S-TRENUE",
+  "contact": "02-785-4786",
+  "ceo": "",
+  "email": "http://www.durga.co.kr/bbs/content.php?co_id=company",
+  "description": "체인점(6)  / 라씨만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.522931,
+  "lng": 126.924233,
+  "memo": ""
+},
+{
+  "name": "강가(여의도점)",
+  "addr": "서울 영등포구 국제금융로2길 7 여의도동 24 한주빌딩 2층",
+  "contact": "02-782-3610",
+  "ceo": "이덕형,임재선",
+  "email": "http://www.ganga.co.kr/",
+  "description": "체인점(8) / 쇼핑몰에 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.524635,
+  "lng": 126.926803,
+  "memo": ""
+},
+{
+  "name": "강가(타임스퀘어점)",
+  "addr": "서울 영등포구 영중로 15 영등포동4가 442 타임스퀘어 4층 강가",
+  "contact": "02-336-0610",
+  "ceo": "이덕형,임재선",
+  "email": "http://www.ganga.co.kr/",
+  "description": "체인점(8) / 쇼핑몰에 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.516998,
+  "lng": 126.904131,
+  "memo": ""
+},
+{
+  "name": "인디아게이트",
+  "addr": "서울 영등포구 영중로 9 영등포동4가 434-5",
+  "contact": "02-2639-4063",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "?",
+  "is_opened": "",
+  "lat": 37.517169,
+  "lng": 126.90554,
+  "memo": ""
+},
+{
+  "name": "마운틴에베레스트레스토랑",
+  "addr": "서울 영등포구 영중로10길 32-4",
+  "contact": "02-2677-1061",
+  "ceo": "",
+  "email": "",
+  "description": "영등포에 위치한 허름한 가게 / 짜이, 라씨 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.518412,
+  "lng": 126.908516,
+  "memo": ""
+},
+{
+  "name": "챠크라(한남점)",
+  "addr": "서울 용산구 독서당로 83",
+  "contact": "02-796-1149",
+  "ceo": "",
+  "email": "http://www.chakraa.co.kr/",
+  "description": "서울2곳/ 수원1곳/ 인천1곳 체인점 보유 / 라씨판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.53444,
+  "lng": 127.009588,
+  "memo": ""
+},
+{
+  "name": "알라딘",
+  "addr": "서울 용산구 보광로60길 17",
+  "contact": "02-764-2141",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "?",
+  "is_opened": "",
+  "lat": 37.53409,
+  "lng": 126.995174,
+  "memo": ""
+},
+{
+  "name": "타지펠리스(이태원점)",
+  "addr": "서울 용산구 우사단로 39",
+  "contact": "02-790-5786",
+  "ceo": "",
+  "email": "http://www.tajpalace.co.kr/",
+  "description": "세트메뉴로 탄산 or 티 선택하게함",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.533666,
+  "lng": 126.995434,
+  "memo": ""
+},
+{
+  "name": "FOREIGN레스토랑",
+  "addr": "서울 용산구 우사단로 42",
+  "contact": "02-794-9292",
+  "ceo": "",
+  "email": "",
+  "description": "뷔페식 인도레스토랑 / 주스, 라씨, 말살라티, 밀크티만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.533866,
+  "lng": 126.995743,
+  "memo": ""
+},
+{
+  "name": "알바라카",
+  "addr": "서울 용산구 우사단로10가길 2",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "?",
+  "is_opened": "",
+  "lat": 37.533273,
+  "lng": 126.997107,
+  "memo": ""
+},
+{
+  "name": "봄베그릴",
+  "addr": "서울 용산구 우사단로10길 11",
+  "contact": "02-792-7155",
+  "ceo": "",
+  "email": "",
+  "description": "생방송아침이좋다 출연 / 커피판매(4천원)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.533173,
+  "lng": 126.996218,
+  "memo": ""
+},
+{
+  "name": "자프란",
+  "addr": "서울 용산구 우사단로10길 36",
+  "contact": "02-794-3570",
+  "ceo": "",
+  "email": "",
+  "description": "이태원 위치 / 라씨판매 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.532996,
+  "lng": 126.997567,
+  "memo": ""
+},
+{
+  "name": "뉴와즈완",
+  "addr": "서울 용산구 우사단로10길 45",
+  "contact": "02-6733-8950",
+  "ceo": "",
+  "email": "",
+  "description": "한남동 위치 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.532307,
+  "lng": 126.999173,
+  "memo": ""
+},
+{
+  "name": "아그라(이태원점)",
+  "addr": "서울 용산구 이태원로 153 덕흥빌딩 지하1층",
+  "contact": "02-797-7262",
+  "ceo": "",
+  "email": "http://agra.co.kr/",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.534509,
+  "lng": 126.991035,
+  "memo": ""
+},
+{
+  "name": "구르메플레이그라운드",
+  "addr": "서울 용산구 이태원로 222-26",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "?",
+  "is_opened": "",
+  "lat": 37.534401,
+  "lng": 126.999829,
+  "memo": ""
+},
+{
+  "name": "아라베스크(이태원점)",
+  "addr": "서울 용산구 이태원로 227",
+  "contact": "02-790-6910",
+  "ceo": "",
+  "email": "",
+  "description": "아라비안커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.535607,
+  "lng": 126.998846,
+  "memo": ""
+},
+{
+  "name": "베나레스(숙대점)",
+  "addr": "서울 용산구 청파로45길 32",
+  "contact": "02-714-9982",
+  "ceo": "",
+  "email": "",
+  "description": "숙대근처에 위치 / 대학생이 주 타겟층이라 세트로 싸게 팜 / 아메리카노판매(저렴한 커피로 보임)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.544628,
+  "lng": 126.968886,
+  "memo": ""
+},
+{
+  "name": "아그라(용산점)",
+  "addr": "서울 용산구 한강대로23길 55 HDC아이파크몰 리빙파크 7층",
+  "contact": "02-2012-1790",
+  "ceo": "",
+  "email": "",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.529468,
+  "lng": 126.964353,
+  "memo": ""
+},
+{
+  "name": "프롬훈자",
+  "addr": "서울 용산구 회나무로12길 5",
+  "contact": "",
+  "ceo": "",
+  "email": "",
+  "description": "정보없음",
+  "handle_coffee": "?",
+  "is_opened": "",
+  "lat": 37.539112,
+  "lng": 126.98958,
+  "memo": ""
+},
+{
+  "name": "페르마타",
+  "addr": "서울 용산구 회나무로44길 40",
+  "contact": "02-792-1488",
+  "ceo": "",
+  "email": "",
+  "description": "한남동 골목 상권에 위치 / 드립커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.539545,
+  "lng": 126.995377,
+  "memo": ""
+},
+{
+  "name": "마샬라인도레스토랑",
+  "addr": "서울 은평구 연서로27길 8-6",
+  "contact": "02-389-8983",
+  "ceo": "",
+  "email": "https://mashalla.modoo.at/",
+  "description": "세트판매 위주 / 라씨, 탄산만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.617983,
+  "lng": 126.918938,
+  "memo": ""
+},
+{
+  "name": "스와가트은평뉴타운점",
+  "addr": "서울 은평구 통일로 1030 헤스티아 1차 상가 2층",
+  "contact": "02-388-4667",
+  "ceo": "",
+  "email": "http://www.swagat.co.kr/default/",
+  "description": "아메리카노 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.634252,
+  "lng": 126.917972,
+  "memo": ""
+},
+{
+  "name": "아그라(롯데몰 은평점)",
+  "addr": "서울 은평구 통일로 1050 4층 아그라",
+  "contact": "02-6975-5470",
+  "ceo": "",
+  "email": "http://www.agra.co.kr/",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.637514,
+  "lng": 126.91778,
+  "memo": ""
+},
+{
+  "name": "아시아아시아(내수동점)",
+  "addr": "서울 종로구 경희궁2길 12",
+  "contact": "02-738-0085",
+  "ceo": "",
+  "email": "",
+  "description": "프리미엄 인도 커리레스토랑 / 녹차와 커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.572876,
+  "lng": 126.971394,
+  "memo": ""
+},
+{
+  "name": "아거먼",
+  "addr": "서울 종로구 낙산성곽길 2",
+  "contact": "02-747-8945",
+  "ceo": "",
+  "email": "https://blog.naver.com/ggoolguy/221518659872",
+  "description": "인도네팔음식 전문/ 주류판매 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.571705,
+  "lng": 127.009853,
+  "memo": ""
+},
+{
+  "name": "깔리",
+  "addr": "서울 종로구 대학로11길 43 명륜4가 171번지 2층",
+  "contact": "02-747-5050",
+  "ceo": "",
+  "email": "",
+  "description": "",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.582433,
+  "lng": 126.999295,
+  "memo": ""
+},
+{
+  "name": "니로사레스토랑",
+  "addr": "서울 종로구 동숭길 43",
+  "contact": "070-8175-8877",
+  "ceo": "",
+  "email": "",
+  "description": "상권중심가에 위치",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.580191,
+  "lng": 127.004278,
+  "memo": ""
+},
+{
+  "name": "페르시안궁전",
+  "addr": "서울 종로구 명륜2가 성균관로6길",
+  "contact": "02-763-6050",
+  "ceo": "나스러라히 샤풀",
+  "email": "drshapour@naver.com",
+  "description": "이란출신 사장운영 / 와인, 술, 라씨 등 인도,이란,네팔중심의 전통 음료 판매 / 대학로(대학가)에 위치/ 커피로는 터키커피, 아라비카가와를 6천원에 판매하고있다.",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.584882,
+  "lng": 126.997502,
+  "memo": ""
+},
+{
+  "name": "옴레스토랑(광화문점)",
+  "addr": "서울 종로구 새문안로 103 지하",
+  "contact": "02-723-4848",
+  "ceo": "",
+  "email": "http://www.omfood.kr/index.php?url_link=om/index.php",
+  "description": "체인점(3)/광화문 세종문화회관 안쪽 / 히말라야커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.570457,
+  "lng": 126.97611,
+  "memo": ""
+},
+{
+  "name": "아마(광화문점)",
+  "addr": "서울 종로구 새문안로 92 지하1층",
+  "contact": "02-729-9302",
+  "ceo": "",
+  "email": "",
+  "description": "인도요리 뷔페레스토랑 / 마살라티, 라씨를 제공(바에 내놓음)",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.569825,
+  "lng": 126.974823,
+  "memo": ""
+},
+{
+  "name": "아그라(센트로폴리스점)",
+  "addr": "서울 종로구 우정국로 26 센트로폴리스 지하2층 AGRA",
+  "contact": "02-6370-5852",
+  "ceo": "",
+  "email": "http://www.agra.co.kr/",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.571571,
+  "lng": 126.983221,
+  "memo": ""
+},
+{
+  "name": "니르바나",
+  "addr": "서울 종로구 인사동길 58 2층",
+  "contact": "02-720-1910",
+  "ceo": "",
+  "email": "https://www.nirvanaseoul.com/",
+  "description": "아메리카노 판매 (원두커피용으로 보임), 디질링 차이, 라씨, 킹휘셔등 인도 전통차와 맥주판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.575121,
+  "lng": 126.983743,
+  "memo": ""
+},
+{
+  "name": "두르가 (종로1점)",
+  "addr": "서울 종로구 종로 19 르메이에르종로타운1",
+  "contact": "02-733-4786",
+  "ceo": "",
+  "email": "http://www.durga.co.kr/",
+  "description": "체인점(6)/광화문과 종로사이에 위치/ 커피와 밀크티판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.570825,
+  "lng": 126.979943,
+  "memo": ""
+},
+{
+  "name": "다르샨나마스테",
+  "addr": "서울 종로구 종로 309",
+  "contact": "02-3675-1812",
+  "ceo": "",
+  "email": "https://www.facebook.com/darshanamaste.np?fref=ts",
+  "description": "원메뉴 디저트 부적합",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.572105,
+  "lng": 127.012012,
+  "memo": ""
+},
+{
+  "name": "쿠마리 인도음식 레스토랑",
+  "addr": "서울 종로구 종로 313 3층2호",
+  "contact": "070-8955-9771",
+  "ceo": "",
+  "email": "",
+  "description": "동대문역 위치 / 라씨판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.57231,
+  "lng": 127.012452,
+  "memo": ""
+},
+{
+  "name": "슈베차",
+  "addr": "서울 종로구 종로 313-3",
+  "contact": "02-765-8771",
+  "ceo": "",
+  "email": "",
+  "description": "티는 팔지만 커피는 판매하지 않음",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.572398,
+  "lng": 127.012514,
+  "memo": ""
+},
+{
+  "name": "레스토랑야무나",
+  "addr": "서울 종로구 종로 321-2",
+  "contact": "02-765-7827",
+  "ceo": "",
+  "email": "",
+  "description": "인도인 남편과 한국인 부인이 운영",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.57253,
+  "lng": 127.013416,
+  "memo": ""
+},
+{
+  "name": "뿌자",
+  "addr": "서울 종로구 종로 327",
+  "contact": "02-744-2199",
+  "ceo": "",
+  "email": "http://poojafood.com/",
+  "description": "분점 보유 / 원두커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.572719,
+  "lng": 127.013957,
+  "memo": ""
+},
+{
+  "name": "델리커리(종로그랑서울점)",
+  "addr": "서울 종로구 종로 33 그랑서울 지하1층",
+  "contact": "02-2158-7580",
+  "ceo": "김민찬",
+  "email": "https://www.instagram.com/delhicurry1984/",
+  "description": "체인점(25)/ 퓨전커리 음식 판매 / 쇼핑몰에 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.571176,
+  "lng": 126.981486,
+  "memo": ""
+},
+{
+  "name": "룸비니 레스토랑",
+  "addr": "서울 종로구 종로 333",
+  "contact": "070-8992-8896",
+  "ceo": "",
+  "email": "http://www.lumbinifood.com/",
+  "description": "네팔인 운영 체인점(1) 영업가능 힘들어 보임",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.57287,
+  "lng": 127.01449,
+  "memo": ""
+},
+{
+  "name": "히말라얀 레스토랑",
+  "addr": "서울 종로구 종로 337",
+  "contact": "02-3672-1566",
+  "ceo": "",
+  "email": "http://www.himalayanrest.com/",
+  "description": "아이스커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.57301,
+  "lng": 127.015036,
+  "memo": ""
+},
+{
+  "name": "죠티인도레스토랑",
+  "addr": "서울 종로구 종로12길 6",
+  "contact": "02-737-7305",
+  "ceo": "",
+  "email": "http://www.jyotifood.com/",
+  "description": "주류만판매 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.568635,
+  "lng": 126.987124,
+  "memo": ""
+},
+{
+  "name": "두르가(종각점)",
+  "addr": "서울 종로구 종로8길 5",
+  "contact": "02-720-4786",
+  "ceo": "",
+  "email": "http://www.durga.co.kr/",
+  "description": "체인점(6)/ 기존 체인점들과 메뉴 같음 / 커피와 밀크티 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.569744,
+  "lng": 126.984082,
+  "memo": ""
+},
+{
+  "name": "나마스테(동묘점)",
+  "addr": "서울 종로구 지봉로 18",
+  "contact": "02-2232-2286",
+  "ceo": "",
+  "email": "http://www.namasterestaurant.co.kr/",
+  "description": "체인점(8)/ 라씨와 차이판매 / 평범",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.571707,
+  "lng": 127.015947,
+  "memo": ""
+},
+{
+  "name": "머노까머나(대학로점)",
+  "addr": "서울 종로구 창경궁로 236 이화빌딩",
+  "contact": "02-763-8850",
+  "ceo": "",
+  "email": "",
+  "description": "체인점(4) / 라씨, 주류 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.582614,
+  "lng": 126.998824,
+  "memo": ""
+},
+{
+  "name": "포탈라(종로점)",
+  "addr": "서울 종로구 청계천로 99 수표교빌딩",
+  "contact": "02-318-0094",
+  "ceo": "",
+  "email": "https://potala.modoo.at/",
+  "description": "망명 티베트인이 직접 운영 / 종로분점 있음 / 라씨만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.568425,
+  "lng": 126.988634,
+  "memo": ""
+},
+{
+  "name": "구르카 인도레스토랑",
+  "addr": "서울 중구 명동10길 16-1 지상 4층",
+  "contact": "050-7959-8816",
+  "ceo": "",
+  "email": "http://gurecaindia.cityfood.co.kr/",
+  "description": "명동상권 중심지에 있음 / 원두커피로 보이는 커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.563042,
+  "lng": 126.985144,
+  "memo": ""
+},
+{
+  "name": "더마샬라",
+  "addr": "서울 중구 명동길 14 Noon Square",
+  "contact": "02-754-8939",
+  "ceo": "",
+  "email": "",
+  "description": "명동눈스퀘어에 위치 / 라씨와 주류만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.563429,
+  "lng": 126.982866,
+  "memo": ""
+},
+{
+  "name": "타지",
+  "addr": "서울 중구 명동길 73 YWCA연합회 B1",
+  "contact": "02-776-0677",
+  "ceo": "",
+  "email": "http://taj.co.kr/location/myungdong.php",
+  "description": "수요미식회 출연 / 분점 보유 / 커피판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.564418,
+  "lng": 126.986213,
+  "memo": ""
+},
+{
+  "name": "죠티인도레스토랑",
+  "addr": "서울 중구 서애로 12-4 고려빌딩",
+  "contact": "02-2261-2912",
+  "ceo": "",
+  "email": "http://www.jyotifood.com/",
+  "description": "체인점(3) / 블랙티 커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.56129,
+  "lng": 126.99794,
+  "memo": ""
+},
+{
+  "name": "강가(무교점)",
+  "addr": "서울 중구 세종대로 136 서울파이낸스센터",
+  "contact": "02-3783-0610",
+  "ceo": "",
+  "email": "http://www.ganga.co.kr/",
+  "description": "체인점(8) / 대형쇼핑몰에 입점 /라씨만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.568384,
+  "lng": 126.97828,
+  "memo": ""
+},
+{
+  "name": "델리커리(동대문DDP점)",
+  "addr": "서울 중구 을지로 281",
+  "contact": "02-2252-1984",
+  "ceo": "",
+  "email": "https://www.instagram.com/delhicurryddp/",
+  "description": "체인점(25)/ 퓨전커리 음식 판매 / 쇼핑몰에 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.567358,
+  "lng": 127.009808,
+  "memo": ""
+},
+{
+  "name": "뿌자2",
+  "addr": "서울 중구 을지로43길 13",
+  "contact": "02-2274-2922",
+  "ceo": "",
+  "email": "http://pooja.fordining.kr/",
+  "description": "블랙커피 판매 (베트남 로부스타 일 가능성 있음)",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.566893,
+  "lng": 127.006822,
+  "memo": ""
+},
+{
+  "name": "아그라(센터원점)",
+  "addr": "서울 중구 을지로5길 26 미래에셋빌딩 지하2층",
+  "contact": "02-6030-8977",
+  "ceo": "",
+  "email": "",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.567386,
+  "lng": 126.985283,
+  "memo": ""
+},
+{
+  "name": "에베레스트레스토랑(동대문역사문화공원점)",
+  "addr": "서울 중구 장충단로 247 굿모닝시티 쇼핑몰 지하 3층",
+  "contact": "02-2118-8898",
+  "ceo": "",
+  "email": "",
+  "description": "체인점(8) / 네팔 전통차 판매 / 많은곳이 쇼핑몰에 배치",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.566835,
+  "lng": 127.007364,
+  "memo": ""
+},
+{
+  "name": "사리",
+  "addr": "서울 중구 칠패로 27 순화동더샵",
+  "contact": "02-318-4249",
+  "ceo": "",
+  "email": "",
+  "description": "아메리카, 라떼 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 37.560176,
+  "lng": 126.972089,
+  "memo": ""
+},
+{
+  "name": "인디아게이트(서울역점)",
+  "addr": "서울 중구 퇴계로 10 지하1층 빌앤쿡 7호점",
+  "contact": "02-6312-8984",
+  "ceo": "",
+  "email": "http://www.indiagate.co.kr/",
+  "description": "서울역에 위치 / 라씨, 레몬에이드 판매 / 저가형 음식점",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.556245,
+  "lng": 126.974569,
+  "memo": ""
+},
+{
+  "name": "아그라(서울로점)",
+  "addr": "서울 중구 퇴계로 18 대우제단빌딩 1층 1-3호",
+  "contact": "02-6366-1328",
+  "ceo": "",
+  "email": "http://www.agra.co.kr/",
+  "description": "체인점(20)/ 가장 유명한 커리체인점 라씨판매 / 대형 몰에만 입점",
+  "handle_coffee": "",
+  "is_opened": "",
+  "lat": 37.556656,
+  "lng": 126.975278,
+  "memo": ""
+},
+{
+  "name": "벨라모티",
+  "addr": "울산 동구 방어진순환도로 652",
+  "contact": "052-251-5010",
+  "ceo": "",
+  "email": "",
+  "description": "해안가에 위치",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 35.499794,
+  "lng": 129.429327,
+  "memo": ""
+},
+{
+  "name": "아라베스크",
+  "addr": "인천 연수구 한나루로 74 백산원룸",
+  "contact": "032-859-6900",
+  "ceo": "",
+  "email": "",
+  "description": "라씨판매/ 현지인 레스토랑",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.421842,
+  "lng": 126.645998,
+  "memo": ""
+},
+{
+  "name": "홀리",
+  "addr": "전남 무안군 삼향읍 대죽동로16번길 25 에드가8차2층",
+  "contact": "010-6600-5600",
+  "ceo": "",
+  "email": "https://www.instagram.com/sigisigi_holi/",
+  "description": "캐모마일, 얼그레이 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 34.81144,
+  "lng": 126.464943,
+  "memo": ""
+},
+{
+  "name": "스위트인디아",
+  "addr": "전북 군산시 거석길 36 우체통거리 1길 14",
+  "contact": "063-445-8522",
+  "ceo": "",
+  "email": "ww.sweetindia.co.kr",
+  "description": "군산에서 나름 인도 출신 주방장 보유 유명 점심시간 메뉴로 가능할듯",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 35.985915,
+  "lng": 126.712096,
+  "memo": ""
+},
+{
+  "name": "1989인도",
+  "addr": "전북 익산시 익산대로70길 35-1",
+  "contact": "063-852-1989",
+  "ceo": "",
+  "email": "",
+  "description": "대학가 근처에 있음 / 퓨전 요리 ",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 35.963336,
+  "lng": 126.957194,
+  "memo": ""
+},
+{
+  "name": "마살라",
+  "addr": "전북 전주시 완산구 영선로 10 1층 101",
+  "contact": "063-286-1226",
+  "ceo": "",
+  "email": "",
+  "description": "전주 한옥마을에 위치 손님이 찾아가는 상권 / 커피가격대를 보아 원두커피 판매",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 35.823143,
+  "lng": 127.12392,
+  "memo": ""
+},
+{
+  "name": "바그다드",
+  "addr": "제주 제주시 서광로32길 38",
+  "contact": "064-757-8182",
+  "ceo": "",
+  "email": "",
+  "description": "주로 주류 판매 / 효리네민박집에 출연한 식당",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 33.497511,
+  "lng": 126.529677,
+  "memo": ""
+},
+{
+  "name": "인디언키친",
+  "addr": "제주 제주시 애월읍 애원로 191",
+  "contact": "064-799-5859",
+  "ceo": "",
+  "email": "https://www.instagram.com/bagdadhouse_indiankitchen/",
+  "description": "제주도에 위치한 카페형 레스토랑 / 지형특색에 맞춘 음식 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 33.450422,
+  "lng": 126.330787,
+  "memo": ""
+},
+{
+  "name": "닐라인도요리",
+  "addr": "충남 천안시 서북구 원두정5길 11",
+  "contact": "041-523-5955",
+  "ceo": "",
+  "email": "",
+  "description": "밀크티와 라씨만 판매",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 36.831236,
+  "lng": 127.135216,
+  "memo": ""
+},
+{
+  "name": "알리바바레스토랑",
+  "addr": "충북 제천시 명륜로 96-1",
+  "contact": "043-642-0786",
+  "ceo": "",
+  "email": "",
+  "description": "라씨판매/ 현지인 레스토랑",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.140911,
+  "lng": 128.211442,
+  "memo": ""
+},
+{
+  "name": "타지마할",
+  "addr": "충북 청주시 서원구 내수동로114번길 8",
+  "contact": "043-277-7391",
+  "ceo": "",
+  "email": "",
+  "description": "라씨와 주류판매 / 중심가에 있음",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 36.633438,
+  "lng": 127.45991,
+  "memo": ""
+},
+{
+  "name": "멜베리 브런치카페",
+  "addr": "충북 청주시 흥덕구 오송읍 오송생명1로 194-41 기업관1 1층",
+  "contact": "043-232-5292",
+  "ceo": "",
+  "email": "http://blog.naver.com/PostThumbnailList.nhn?blogId=suekimnice&from=postList&categoryNo=11",
+  "description": "관공서에 위치/ 인도 전문 음식점은 아니지만 카페운영으로 영업가능성 있음",
+  "handle_coffee": "o",
+  "is_opened": "",
+  "lat": 36.635748,
+  "lng": 127.327029,
+  "memo": ""
+},
+{
+  "name": "에베레스트커리월드",
+  "addr": "서울특별시 종로구 창신2동 종로 305",
+  "contact": "",
+  "ceo": "",
+  "email": "https://m.blog.naver.com/everestcurryworld?suggestAddBuddy=true",
+  "description": "라씨와 주류판매 / 중심가에 있음",
+  "handle_coffee": "x",
+  "is_opened": "",
+  "lat": 37.572092,
+  "lng": 127.011563,
+  "memo": ""
+}
+];
+//data
+
+// 마커 생성 
+                    var markers = [];
+                    var mapContainer = document.getElementById('map'), // 지도를 표시할 div 
+                        mapOption = {
+                            center: new kakao.maps.LatLng(37.535899, 127.095349), // 지도의 중심좌표
+                            // center: new kakao.maps.LatLng(stores[0]["lat"],stores[0]["lng"]), // 지도의 중심좌표
+                            level: 5, // 지도의 확대 레벨
+                            mapTypeId : kakao.maps.MapTypeId.ROADMAP // 지도종류
+                        }; 
+        
+                    // $$$
+                    // 왜 지도 센터가 완벽하게 안 맞을까
+                    // mapOption 센터 좌표 확인하기
+                    // if (query_arr.length > 2) {
+                    //     mapOption = {
+                    //         center: new kakao.maps.LatLng(stores[0]["lat"],stores[0]["lng"]), // 지도의 중심좌표
+                    //         level: 5, // 지도의 확대 레벨
+                    //         mapTypeId : kakao.maps.MapTypeId.ROADMAP // 지도종류
+                    //     }; 
+                    // }
+                    
+                    // 지도를 생성한다 
+                    var map = new kakao.maps.Map(mapContainer, mapOption); 
+                    // 마커 클러스터러를 생성합니다 
+                    var clusterer = new kakao.maps.MarkerClusterer({
+                        map: map, // 마커들을 클러스터로 관리하고 표시할 지도 객체 
+                        averageCenter: true, // 클러스터에 포함된 마커들의 평균 위치를 클러스터 마커 위치로 설정 
+                        minLevel: 6 // 클러스터 할 최소 지도 레벨 
+                    });
+
+                    for (var i = 0; i < stores.length; i++) {
+                
+                        // let code = stores[i]["code"];
+                        let name = stores[i]["name"];
+                        let addr = stores[i]["addr"];
+                        let contact = stores[i]["contact"];
+                        let ceo = stores[i]["ceo"];
+                        let email = stores[i]["email"];
+                        let description = stores[i]["description"];
+                        let handle_coffee = stores[i]["handle_coffee"];
+                        let is_opened = stores[i]["is_opened"];
+                        let lat = stores[i]["lat"];
+                        let lng = stores[i]["lng"];
+                        let memo = stores[i]["memo"];
+
+                        switch(handle_coffee){
+                            case "o":
+                                remain_stat = "<span style='color:#3d853b;'>커피 판매 중</span>";
+                                imgSelect = 'img/marker_green_round.png'
+                                break;
+                            // case "some":
+                            //     remain_stat = "<span style='color:orange;'>30개 ~ 99개</span>";
+                            //     imgSelect = 'img/marker_yellow_round.png'
+                            //     break;
+                            // case "few":
+                            //     remain_stat = "<span style='color:red;'>2개 ~ 29개</span>";
+                            //     imgSelect = 'img/marker_red_round.png'
+                            //     break;
+                            default:
+                                remain_stat = "커피 판매 안함"
+                                // imgSelect = 'img/marker_gray.png'
+                                imgSelect = 'img/marker_red_round.png'
+                                break;
+                        }
+                        // Define an object to add fav pharmacy info
+                        let phar = {
+                            'name': name
+                            , 'addr': addr
+                            , 'contact' : contact
+                            , 'ceo' : ceo
+                            , 'email' : email
+                            , 'description' : description
+                            , 'handle_coffee' : handle_coffee
+                            , 'is_opened' : is_opened
+                            , 'lat': lat
+                            , 'lng': lng
+                            , 'memo': memo
+                        }
+                        
+                        // 마커이미지의 주소입니다    
+                        var imageSrc = imgSelect, 
+                        imageSize = new kakao.maps.Size(30, 33), // 마커이미지의 크기입니다
+                        imageOption = {offset: new kakao.maps.Point(27, 69)}; // 마커이미지의 옵션입니다. 마커의 좌표와 일치시킬 이미지 안에서의 좌표를 설정합니다.
+                        
+                        var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption)
+
+                        var marker = new kakao.maps.Marker({
+                            position: new kakao.maps.LatLng(lat, lng)
+                            , map:map // 마커 표시할 지도
+                            // , code:code 
+                            , addr:addr 
+                            , image: markerImage // 마커이미지 설정 
+                        });
+
+                        let search_pharmacy = name;
+                        let addr_arr = addr.split(" ");
+                        // for (let i = 0; i < addr_arr.length; i++) {
+                        for (let i = 0; i < 2; i++) {
+                            search_pharmacy += '%20' + addr_arr[i];
+                        }
+                        // 커스텀 오버레이에 표시할 컨텐츠 입니다
+                        // 커스텀 오버레이는 아래와 같이 사용자가 자유롭게 컨텐츠를 구성하고 이벤트를 제어할 수 있기 때문에
+                        // 별도의 이벤트 메소드를 제공하지 않습니다 
+                        var content = '';
+                        
+                        var changed_phar;
+                        
+                        // Click Marker, update the info before displaying
+                        // 마커를 클릭했을 때 커스텀 오버레이를 표시합니다
+                        kakao.maps.event.addListener(marker, 'click', function() {
+                            // alert('before call func');
+                            // retrieve_fav_restaurant_modal_alert(phar, 'retrieve', search_pharmacy);
+                            retrieve_fav_restaurant_modal(phar, 'retrieve', search_pharmacy);
+                            // alert('after call func');
+                            changed_phar = phar;
+                            // Cache를 쓰면 시스템에 무리 가 / 나중에 오류날 가능성 높음 (which is localStotage)
+                            // the next function in retrieve_fav_restaurant_modal()  dbhandle.js
+                        });
+                        //  #
+                        // call the insert fav_restaurant function to save in db
+                        function add_fav_phar() {                                
+                            // if the phar exists already,
+                            // delete, else insert
+                            retrieve_fav_restaurant_modal(changed_phar, 'thumup', '');
+                        }
+                        // changing marker overlay contents and saving btn
+                        // only display when user searched own location
+                        // if (query_str != '') {
+                        //     console.log(query_str)
+                        //     markers.push(marker);
+                        // }
+                        markers.push(marker);
+                    } // end for loop
+                    // console.log(markers)
+                    // 지도 확대 축소를 제어할 수 있는  줌 컨트롤을 생성합니다
+                    var zoomControl = new kakao.maps.ZoomControl();
+                    map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+
+                    // 지도가 확대 또는 축소되면 마지막 파라미터로 넘어온 함수를 호출하도록 이벤트를 등록합니다
+                    kakao.maps.event.addListener(map, 'zoom_changed', function() {        
+                        // 지도의 현재 레벨을 얻어옵니다
+                        var level = map.getLevel();
+                        
+                        var message = '현재 지도 레벨은 ' + level + ' 입니다';
+                        var resultDiv = document.getElementById('result');  
+                    
+                    });
+                    
+                    clusterer.addMarkers(markers);
+                // }); // @@ fetch url 129
+            }
+        </script>
+
+<!-- fav pharmacies modal -->
+        <div class="modal fade" id="list_modal" tabindex="-1" role="dialog" aria-labelledby="list_modalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document" style="max-width: 80%; margin: 10%;">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">저장된 음식점 리스트</h5>
+                </div>
+                <div class="modal-body">
+                    <div id="list_html" class="padding10"> </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+                </div>
+                </div>
+            </div>
+        </div>
+        <script src="js/jquery-2.1.4.js"></script>
+        <script src="js/main.js"></script> <!-- Resource jQuery --> 
+    </body>
+</html>

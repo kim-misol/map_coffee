@@ -1,0 +1,190 @@
+/* search input in list pharmacies */
+.search-memo {
+    margin-bottom: auto;
+    /* margin-top: 40px; */
+    height: 40px;
+    background-color: #eee;
+    /* padding: 10px; */
+    z-index: 999;
+    border-radius: 100px;
+}
+.search-memo-input {
+    color: white;
+    border: 0;
+    outline: 0;
+    background: none;
+    width: 0;
+    margin-left: 5px;
+    caret-color: transparent;
+    /* line-height: 40px; give margin-top */
+    transition: width 0.4s linear;
+    border-radius: 100px;
+}
+.search-memo 
+.search-memo-input {
+    padding: 0 ;
+    min-width: 70vw;
+
+    caret-color: #536bf6;
+    font-size: 14px;
+    font-weight: 300;
+    vertical-align: center;
+    color: black;
+    transition: width 0.4s linear;
+    border-radius: 100px;
+}
+@media screen and (min-width: 10px) {
+    .search-memo-input{ 
+        min-width: 600px;
+        border-radius: 100px;
+    }
+}
+.search-memo:hover>.search-memo-icon {
+    background-color: rgba(59,133,61,0.8);
+    color: #fff;
+    border-radius: 100px;
+}
+.search-memo-icon {
+    height: 30px;
+    width: 30px;
+    margin-top: -5px;
+    float: right;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    background-color: rgba(59,133,61,1);
+    border-radius: 100px;
+}
+
+.padding10 {
+    padding: 10px;
+}
+
+/* .wrap {position: absolute;left: 0;bottom: 40px;width: 288px;height: 132px;margin-left: -144px;text-align: left;overflow: hidden;font-size: 12px;font-family: 'Malgun Gothic', dotum, '돋움', sans-serif;line-height: 1.5;} */
+.wrap {position: absolute;left: 0;bottom: 40px;width: 288px;height: 250px;margin-left: -144px;text-align: left;overflow: hidden;font-size: 12px;font-family: 'Malgun Gothic', dotum, '돋움', sans-serif;line-height: 1.5;}
+.wrap * {padding: 0;margin: 0;}
+/* .wrap .info {width: 286px;height: 120px;border-radius: 5px;border-bottom: 2px solid #ccc;border-right: 1px solid #ccc;overflow: hidden;background: #fff;} */
+.wrap .info {width: 286px;height: 230px;border-radius: 5px;border-bottom: 2px solid #ccc;border-right: 1px solid #ccc;overflow: hidden;background: #fff;}
+.wrap .info:nth-child(1) {border: 0;box-shadow: 0px 1px 2px #888;}
+/* .info .title {padding: 3px 0 0 10px;height: 30px;background: #eee;border-bottom: 1px solid #ddd;font-size: 18px;font-weight: bold;} */
+.info .title {padding: 3px 0 0 10px;height: 30px;background: #3d853b;color:white;border-bottom: 1px solid #ddd;font-size: 18px;}
+.info .close {position: absolute;top: 7px;right: 10px;color: #888;width: 17px;height: 17px;background: url('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/overlay_close.png');}
+.info .close:hover {cursor: pointer;}
+.info .body {position: relative;overflow: hidden;}
+/* .info .desc {position: relative;margin: 13px 0 0 13px;height: 80px;} */
+.info .desc {position: relative;margin: 13px 0 0 13px;height: 180px;}
+.desc .ellipsis {overflow: hidden;text-overflow: ellipsis;white-space: nowrap;}
+.desc .jibun {font-size: 14px;color: #888;margin-top: 2px;}
+.info:after {content: '';position: absolute;margin-left: -12px;left: 50%;bottom: 0;width: 22px;height: 12px;background: url('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/vertex_white.png')}
+.info .link {color: #5085BB;margin-top:-15px;}
+
+/* Added more css from GY */
+.search {
+    margin-bottom: auto;
+    margin-top: 40px;
+    height: 60px;
+    background-color: #fff;
+    padding: 10px;
+    z-index: 999;
+    border-radius: 100px;
+}
+.search-input {
+    color: white;
+    border: 0;
+    outline: 0;
+    background: none;
+    width: 0;
+    margin-left: 5px;
+    caret-color: transparent;
+    line-height: 40px;
+    transition: width 0.4s linear;
+    border-radius: 100px;
+}
+.search 
+.search-input {
+    padding: 0 ;
+    min-width: 70vw;
+
+    caret-color: #536bf6;
+    font-size: 14px;
+    font-weight: 300;
+    vertical-align: center;
+    color: black;
+    transition: width 0.4s linear;
+    border-radius: 100px;
+}
+@media screen and (min-width: 10px) {
+    .search-input{ 
+        min-width: 600px;
+        border-radius: 100px;
+    }
+}
+.search:hover>.search-icon {
+    background-color: rgba(59,133,61,0.8);
+    color: #fff;
+    border-radius: 100px;
+}
+.search-icon {
+    height: 50px;
+    width: 50px;
+    margin-top: -5px;
+    float: right;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    background-color: rgba(59,133,61,1);
+    border-radius: 100px;
+}
+
+a:link {
+    text-decoration: none;
+}
+
+body {
+    font-size: 1.4rem;
+    font-family: "Source Sans Pro", sans-serif;
+    color: #003c5d;
+    background-color: #ffffff;
+}
+.modal-title{
+    font-size: 18px;
+    width: 100%;
+    text-align: center;
+    margin-top: 15px;
+}
+a{
+    color: #3d853b;
+    font-weight: 300;
+}
+.btn-secondary{
+    font-size: 15px;
+}
+.btn-primary{
+    font-size: 15px;
+    background-color: #3d853b;
+    color: aliceblue;
+    border-style: none;
+}
+.btn-primary:hover{
+    background-color: rgba(59,133,61,0.7);
+}
+.fa-bookmark:before {
+    content: "\f02e";
+                color: #3d853b;
+}
+/*.cd-stretchy-nav */
+.modal-dialog {
+    display: inline-block;
+    vertical-align: center;
+    height: 100%;
+}
+
+.modal-content {
+    position: fixed;
+    left: 50%;
+    width: 80vw;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
